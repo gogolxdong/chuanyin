@@ -1,5 +1,6 @@
 <template>
 	<view class="gpt">
+		<status-bar />
 		<image src="@/static/img/chatbg.png" class="upbg"></image>
 		<image src="@/static/img/chatbg.png" class="downbg"></image>
 		<view class="title">
@@ -8,7 +9,7 @@
 		<view class="chat">
 			<view class="tips" v-if="!msg.length">
 				<!-- <view class="tips"> -->
-				<!-- <view class="h1">GPT AI</view> -->
+				<view class="h1">GPT AI</view>
 				<view class="item">
 					<view class="h2">
 						<image src="@/static/img/power.png"></image>
@@ -59,8 +60,9 @@
 					</view>
 				</view>
 				<view class="audio" v-if="message.type == 2">
-					<image src="@/static/img/man.png"></image>
-					<view @click="playaudio(message.content)">
+					<image src="@/static/img/man.png" />
+					<!-- <audio :src="message.content"/> -->
+					<view @click="playAudio(message.content)" :id="message.content">
 						{{ message.length }}″
 						<image src="@/static/img/voice.png"></image>
 					</view>
@@ -108,12 +110,14 @@
 </template>
 
 <script>
-	import nnvoice from '@/components/nnvoice.vue'
 	import moment from 'moment'
+	import nnvoice from '@/components/nnvoice.vue'
+	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar.vue";
 	// const recorderManager = uni.getRecorderManager();
 	export default {
 		components: {
-			nnvoice
+			nnvoice,
+			statusBar
 		},
 		data() {
 			return {
@@ -140,35 +144,39 @@
 					// 	date: '2020-06-24 18:00'
 					// }
 				],
-				lockReconnect: false,
-				websock: null,
-				message: "",
-				assistant: "",
 				nnshow: 0,
 				isRecording: false,
 				needCancel: false,
-				recordedBlob: null,
 				mediaRecorder: null,
 				startX: 0,
 				startY: 0,
+				lockReconnect: false,
+				websocket: null,
+				message: "",
+				assistant: "",
+				audioChunks: null,
 			}
 		},
 		onLoad() {
 
 		},
+		onShow() {
+			uni.showTabBar();
+			// console.log('保障底部菜单展示')
+		},
 		mounted() {
+
 			const wsuri = "ws://ws.zhongshu.info/ws";
-			this.websock = new WebSocket(wsuri)
+			this.websocket = new WebSocket(wsuri)
 			const date = moment().format('YYYY-MM-DD HH:mm:SS')
-			console.log(date)
-			this.websock.onmessage = (e) => {
+			this.websocket.onmessage = (e) => {
 				if (e.data === "assistant") {
 					this.assistant = ""
 					this.msg.push({
 						type: 3,
 						content: this.assistant,
 						length: '0',
-						date: date 
+						date: date
 					})
 				} else {
 					console.log(e.data)
@@ -177,15 +185,15 @@
 				}
 			}
 			// 连接建立时触发
-			this.websock.onopen = () => {
+			this.websocket.onopen = () => {
 				console.log("open")
 			}
 			// 通信发生错误时触发
-			this.websock.onerror = () => {
+			this.websocket.onerror = () => {
 				console.log("error")
 			}
 			// 连接关闭时触发
-			this.websock.onclose = (e) => {
+			this.websocket.onclose = (e) => {
 				console.log("断开连接", e);
 				var that = this;
 				if (that.lockReconnect) {
@@ -194,7 +202,7 @@
 				that.lockReconnect = true;
 				that.timeoutnum && clearTimeout(that.timeoutnum);
 				that.timeoutnum = setTimeout(function() {
-					that.websock = new WebSocket(wsuri)
+					that.websocket = new WebSocket(wsuri)
 					that.lockReconnect = false;
 				}, 5000);
 
@@ -205,12 +213,11 @@
 			changeway() {
 				this.inputway = this.inputway === 0 ? 1 : 0;
 			},
-			playaudio(e) {
-				console.log('播放音频' + e)
+			playAudio(e) {
+				new Audio(e).play()
 			},
 			startRecording(e) {
 				this.nnshow = 1;
-				// recorderManager.start();
 				this.removetabbar()
 				this.length = 1;
 				this.startX = e.touches[0].pageX;
@@ -228,14 +235,27 @@
 					})
 					.then(stream => {
 						this.isRecording = true;
-						this.recordedBlob = null;
 
 						this.mediaRecorder = new MediaRecorder(stream);
 						this.mediaRecorder.start();
-
+						this.mediaRecorder.onstop = (e) => {
+							this.audioChunks = null
+						}
 						this.mediaRecorder.addEventListener('dataavailable', event => {
 							if (event.data.size > 0) {
-								this.recordedBlob = event.data;
+								this.audioChunks = event.data
+								console.log(this.audioChunks.size)
+								const blob = new Blob([this.audioChunks], {
+									type: 'audio/webm'
+								})
+								const blobUrl = URL.createObjectURL(blob)
+								this.msg.push({
+									type: 2,
+									content: blobUrl,
+									length: this.length,
+									date: moment().format('YYYY-MM-DD HH:mm:SS')
+								})
+
 							}
 						});
 					})
@@ -253,42 +273,40 @@
 				}
 			},
 			stopRecording() {
-				this.sendChatMessage()
+				this.nnshow = 0
+				uni.showTabBar()
 				clearInterval(this.timer);
-				// recorderManager.stop();
 				if (this.mediaRecorder && this.isRecording) {
 					this.mediaRecorder.stop();
 					this.isRecording = false;
 					if (!this.needCancel) {
-						console.log('录音发送' + this.mediaRecorder)
+						
+						console.log('录音发送 ')
 					} else {
-						console.log('录音停止')
+						console.log('取消')
 					}
 
 				}
 				this.needCancel = false
 			},
 			sendVoiceMessage() {
-				if (this.recordedBlob) {
-					// 在这里将 recordedBlob 发送给服务器或执行其他操作
-					// 例如，使用 FormData 将语音文件上传到服务器
 
-					// 清除录音数据
-					this.recordedBlob = null;
-				}
+					
 			},
 			removetabbar() {
 				uni.hideTabBar();
 			},
 			sendChatMessage() {
-				this.websock.send(this.message)
 				this.msg.push({
 					type: 1,
 					content: this.message,
-					length: '2',
+					length: '0',
 					date: moment().format('YYYY-MM-DD HH:mm:SS')
 				})
 				this.message = ""
+				if (this.websocket) {
+					this.websocket.send(this.message)
+				}
 				this.nnshow = 0
 				uni.showTabBar();
 			}
@@ -299,8 +317,11 @@
 <style lang="less">
 	.gpt {
 		position: relative;
-		height: calc(100vh - 95rpx);
 		overflow: hidden;
+		height: calc(100vh - 95rpx);
+		/* #ifdef APP-PLUS */
+		height: 100vh;
+		/* #endif */
 
 		.upbg {
 			position: absolute;
@@ -310,9 +331,11 @@
 			left: 0;
 			right: 0;
 			top: 0;
+			z-index:-1;
 		}
 
 		.downbg {
+			z-index:-1;
 			position: absolute;
 			width: 650rpx;
 			height: 261rpx;
@@ -440,6 +463,10 @@
 
 			.audio {
 				margin-bottom: 40rpx;
+
+				audio {
+					display: block;
+				}
 
 				>image {
 					width: 80rpx;
@@ -656,6 +683,8 @@
 			}
 		}
 
-
+		// .uni-navbar__placeholder-view {
+		// 	height: $nav-height;
+		// }
 	}
 </style>

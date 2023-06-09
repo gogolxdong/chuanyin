@@ -1,10 +1,12 @@
 <template>
 	<view class="signup">
+		<!-- #ifdef H5 -->
 		<view class="wave">
 			<view class="wave1"></view>
 			<view class="wave2"></view>
 			<view class="wave3"></view>
 		</view>
+		<!-- #endif -->
 		<view class="content">
 			<status-bar />
 			<image src="@/static/img/close.png" class="close" @click="back"></image>

@@ -78,7 +78,7 @@
 
 		@-webkit-keyframes opac {
 			from {
-				opacity: 1;
+				// opacity: 1;
 				width: 100rpx;
 				height: 100rpx;
 				top: 1050rpx;
@@ -86,7 +86,7 @@
 			}
 
 			to {
-				opacity: 0;
+				// opacity: 0;
 				width: 100%;
 				height: 100%;
 				top: 0;

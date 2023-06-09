@@ -340,7 +340,7 @@
 		.invite-content {
 			position: relative;
 			width: 560rpx;
-			height: 525rpx;
+			min-height: 525rpx;
 			padding: 60rpx 45rpx;
 			box-sizing: border-box;
 			border-radius: 20rpx;

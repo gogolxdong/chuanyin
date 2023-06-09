@@ -1,10 +1,13 @@
 <template>
 	<view class="login">
+		<!-- #ifdef H5 -->
 		<view class="wave">
 			<view class="wave1"></view>
 			<view class="wave2"></view>
 			<view class="wave3"></view>
 		</view>
+		<!-- #endif -->
+
 		<view class="content">
 			<status-bar />
 			<image src="@/static/img/close.png" class="close" @click="back"></image>
@@ -171,30 +174,24 @@
 				})
 			},
 			submit() {
-				uni.navigateTo({
-					url: '/pages/info'
-				});
-				// this.$refs.form.validate().then(res => {
-				// 	console.log('表单验证正确：', res);
-				// 	uni.navigateTo({
-				// 		url: '/pages/info'
-				// 	});
-				// }).catch(err => {
-				// 	console.log('表单验证错误：', err);
-				// })
+				this.$refs.form.validate().then(res => {
+					console.log('表单验证正确：', res);
+					uni.navigateTo({
+						url: '/pages/info'
+					});
+				}).catch(err => {
+					console.log('表单验证错误：', err);
+				})
 			},
 			phoneSubmit() {
-				uni.navigateTo({
-					url: '/pages/info'
-				});
-				// this.$refs.phoneForm.validate().then(res => {
-				// 	console.log('表单验证正确：', res);
-				// 	uni.navigateTo({
-				// 		url: '/pages/info'
-				// 	});
-				// }).catch(err => {
-				// 	console.log('表单验证错误：', err);
-				// })
+				this.$refs.phoneForm.validate().then(res => {
+					console.log('表单验证正确：', res);
+					uni.navigateTo({
+						url: '/pages/info'
+					});
+				}).catch(err => {
+					console.log('表单验证错误：', err);
+				})
 			},
 			startCountdown() {
 				const startTimestamp = Math.floor(Date.now() / 1000); // 倒计时开始的时间戳
