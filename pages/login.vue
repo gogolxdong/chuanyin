@@ -6,6 +6,7 @@
 			<view class="wave3"></view>
 		</view>
 		<view class="content">
+			<status-bar />
 			<image src="@/static/img/close.png" class="close" @click="back"></image>
 			<image src="@/static/img/logo.png" class="logo"></image>
 			<text class="h1">欢迎来到传音科技平台</text>
@@ -40,7 +41,8 @@
 					<view class="item">
 						<image src="@/static/img/phone.png" class="phone"></image>
 						<view class="input">
-							<input placeholder="请输入账号" placeholder-style="font-size:28rpx;color:#b6b7cc;" v-model="formData.username"/>
+							<input placeholder="请输入账号" placeholder-style="font-size:28rpx;color:#b6b7cc;"
+								v-model="formData.username" />
 						</view>
 					</view>
 				</uni-forms-item>
@@ -49,7 +51,7 @@
 						<image src="@/static/img/password.png" class="password"></image>
 						<view class="input">
 							<input placeholder="请输入密码" :password="!showPassword"
-								placeholder-style="font-size:28rpx;color:#b6b7cc;" v-model="formData.password"/>
+								placeholder-style="font-size:28rpx;color:#b6b7cc;" v-model="formData.password" />
 							<view class="getcheck">
 								<image src="@/static/img/sleep.png" v-if="this.showPassword == 0" mode="aspectFit"
 									class="showpwd" @click="showpwd"></image>
@@ -77,7 +79,11 @@
 </template>
 
 <script>
+	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar.vue";
 	export default {
+		components: {
+			statusBar
+		},
 		data() {
 			return {
 				way: 1,
@@ -170,9 +176,9 @@
 				});
 				// this.$refs.form.validate().then(res => {
 				// 	console.log('表单验证正确：', res);
-				// 	// uni.navigateTo({
-				// 	// 	url: '/pages/info'
-				// 	// });
+				// 	uni.navigateTo({
+				// 		url: '/pages/info'
+				// 	});
 				// }).catch(err => {
 				// 	console.log('表单验证错误：', err);
 				// })
@@ -183,9 +189,9 @@
 				});
 				// this.$refs.phoneForm.validate().then(res => {
 				// 	console.log('表单验证正确：', res);
-				// 	// uni.navigateTo({
-				// 	// 	url: '/pages/info'
-				// 	// });
+				// 	uni.navigateTo({
+				// 		url: '/pages/info'
+				// 	});
 				// }).catch(err => {
 				// 	console.log('表单验证错误：', err);
 				// })

@@ -26,6 +26,10 @@
 			}
 		},
 		onLoad() {},
+		onShow(){
+			uni.showTabBar();
+			console.log('保障底部菜单展示')
+		},
 		mounted() {
 
 			if (this.showPop == 1) {

@@ -6,6 +6,7 @@
 			<view class="wave3"></view>
 		</view>
 		<view class="content">
+			<status-bar />
 			<image src="@/static/img/close.png" class="close" @click="back"></image>
 			<view class="h1">
 				注册
@@ -73,7 +74,11 @@
 </template>
 
 <script>
+	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar.vue";
 	export default {
+		components: {
+			statusBar
+		},
 		data() {
 			return {
 				way: 1,
