@@ -7,7 +7,7 @@
 			传音对话
 		</view>
 		<view class="chat">
-			<view class="tips" v-if="!msg.length">
+			<view class="tips" v-if="!messages.length">
 				<!-- <view class="tips"> -->
 				<view class="h1">GPT AI</view>
 				<view class="item">
@@ -49,7 +49,7 @@
 					</view>
 				</view>
 			</view>
-			<view class="msg" v-for="(message, index) in msg" :key="index">
+			<view class="msg" v-for="(message, index) in messages" :key="index">
 				<view class="date">
 					{{ message.date }}
 				</view>
@@ -76,8 +76,8 @@
 		<view class="input">
 			<view class="pannel" v-if="this.inputway == 0">
 				<image src="@/static/img/audio.png" @click="changeway"></image>
-				<input placeholder="" v-model="message" @keydown.enter="sendChatMessage" />
-				<button @click="sendChatMessage">发送</button>
+				<input placeholder="" v-model="textMsg" @keydown.enter="sendText" />
+				<button @click="sendText">发送</button>
 			</view>
 			<view class="pannel" v-else>
 				<image src="@/static/img/keyboard.png" @click="changeway"></image>
@@ -89,15 +89,15 @@
 		<view class="recourding" v-if="nnshow">
 
 			<view class="isstop">
-				<view class="blue" v-if="needCancel == false">
+				<view class="blue" v-if="cancelRecording == false">
 					<nnvoice />
 				</view>
-				<view class="touch" v-if="needCancel == false">
+				<view class="touch" v-if="cancelRecording == false">
 					<image src="@/static/img/isstop.png"></image>
 					<view>上滑取消</view>
 				</view>
-				<view class="cancel" v-if="needCancel == true">
-					<view class="red" v-if="needCancel == true">
+				<view class="cancel" v-if="cancelRecording == true">
+					<view class="red" v-if="cancelRecording == true">
 						<nnvoice />
 					</view>
 					<view>松开取消</view>
@@ -113,7 +113,8 @@
 	import moment from 'moment'
 	import nnvoice from '@/components/nnvoice.vue'
 	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar.vue";
-	// const recorderManager = uni.getRecorderManager();
+	const recorderManager = uni.getRecorderManager()
+
 	export default {
 		components: {
 			nnvoice,
@@ -121,196 +122,291 @@
 		},
 		data() {
 			return {
+				messages: [],
 				inputway: 0,
 				useravatar: '/static/img/man.png',
 				aiavatar: '/static/img/logo.png',
-				msg: [ //1 文字,2 语音,3 AI回复
-					// {
-					// 	type: 1,
-					// 	content: '请描述一下祖国的大好河山，用优美的语句，精彩绝伦的展示山水湖泊已经各个城市的优美景点和人文特色 ，请不要用重复的语句来展示！',
-					// 	length: '60',
-					// 	date: '2020-06-24 18:00'
-					// },
-					// {
-					// 	type: 2,
-					// 	content: '请描述一下祖国的大好河山，用优美的语句，精彩绝伦的展示山水湖泊已经各个城市的优美景点和人文特色 ，请不要用重复的语句来展示！',
-					// 	length: '4',
-					// 	date: '2020-06-24 18:00'
-					// },
-					// {
-					// 	type: 3,
-					// 	content: '请描述一下祖国的大好河山，用优美的语句，精彩绝伦的展示山水湖泊已经各个城市的优美景点和人文特色 ，请不要用重复的语句来展示！',
-					// 	length: '30',
-					// 	date: '2020-06-24 18:00'
-					// }
-				],
 				nnshow: 0,
 				isRecording: false,
-				needCancel: false,
+				cancelRecording: false,
 				mediaRecorder: null,
 				startX: 0,
 				startY: 0,
 				lockReconnect: false,
 				websocket: null,
-				message: "",
+				textMsg: "",
 				assistant: "",
 				audioChunks: null,
+				voicePath: null,
+				timeout: 0,
+				timeoutObj: null,
 			}
 		},
 		onLoad() {
-
+			const pushVoiceMessage = (res)=>{
+				console.log('recorder stop' + JSON.stringify(res));
+				this.voicePath = res.tempFilePath;
+				this.isRecording = false
+				if (!this.cancelRecording) {
+					if (this.voicePath) {
+						this.messages.push({
+							type: 2,
+							content: this.voicePath,
+							length: this.length,
+							date: moment().format('YYYY-MM-DD HH:mm:SS')
+						})
+						this.voicePath = null
+					}
+				} else {
+					console.log('取消')
+				}
+				clearInterval(this.timer)
+				this.cancelRecording = false
+				this.nnshow = 0
+			}
+			recorderManager.onStop(pushVoiceMessage);
 		},
 		onShow() {
-			uni.showTabBar();
-			// console.log('保障底部菜单展示')
+			uni.showTabBar()
+			this.checkOpenSocket()
 		},
 		mounted() {
 
-			const wsuri = "ws://ws.zhongshu.info/ws";
-			this.websocket = new WebSocket(wsuri)
-			const date = moment().format('YYYY-MM-DD HH:mm:SS')
-			this.websocket.onmessage = (e) => {
-				if (e.data === "assistant") {
-					this.assistant = ""
-					this.msg.push({
-						type: 3,
-						content: this.assistant,
-						length: '0',
-						date: date
-					})
-				} else {
-					console.log(e.data)
-					this.assistant += e.data
-					this.msg[this.msg.length - 1].content = this.assistant
-				}
-			}
-			// 连接建立时触发
-			this.websocket.onopen = () => {
-				console.log("open")
-			}
-			// 通信发生错误时触发
-			this.websocket.onerror = () => {
-				console.log("error")
-			}
-			// 连接关闭时触发
-			this.websocket.onclose = (e) => {
-				console.log("断开连接", e);
-				var that = this;
-				if (that.lockReconnect) {
-					return;
-				}
-				that.lockReconnect = true;
-				that.timeoutnum && clearTimeout(that.timeoutnum);
-				that.timeoutnum = setTimeout(function() {
-					that.websocket = new WebSocket(wsuri)
-					that.lockReconnect = false;
-				}, 5000);
-
-
-			}
 		},
 		methods: {
-			changeway() {
-				this.inputway = this.inputway === 0 ? 1 : 0;
-			},
-			playAudio(e) {
-				new Audio(e).play()
-			},
 			startRecording(e) {
-				this.nnshow = 1;
-				this.removetabbar()
 				this.length = 1;
 				this.startX = e.touches[0].pageX;
 				this.startY = e.touches[0].pageY;
 				this.timer = setInterval(() => {
-					this.length += 1;
+					this.length += 1
+					console.log(this.length)
 					if (this.length >= 60) {
 						clearInterval(this.timer);
 						this.stopRecording()
+						this.length = 1
 					}
 				}, 1000);
-				console.log('录音开始')
-				navigator.mediaDevices.getUserMedia({
-						audio: true
-					})
-					.then(stream => {
-						this.isRecording = true;
-
-						this.mediaRecorder = new MediaRecorder(stream);
-						this.mediaRecorder.start();
-						this.mediaRecorder.onstop = (e) => {
-							this.audioChunks = null
-						}
-						this.mediaRecorder.addEventListener('dataavailable', event => {
-							if (event.data.size > 0) {
-								this.audioChunks = event.data
-								console.log(this.audioChunks.size)
-								const blob = new Blob([this.audioChunks], {
-									type: 'audio/webm'
-								})
-								const blobUrl = URL.createObjectURL(blob)
-								this.msg.push({
-									type: 2,
-									content: blobUrl,
-									length: this.length,
-									date: moment().format('YYYY-MM-DD HH:mm:SS')
-								})
-
-							}
-						});
-					})
-					.catch(error => {
-						console.error('无法访问麦克风', error);
-					});
+				recorderManager.start()
+				this.nnshow = 1
+				this.removetabbar()
 			},
-			handleTouchMove(e) {
-				if (this.startY - e.touches[0].pageY > 50) {
-					this.needCancel = true;
-					console.log('需要停止')
+			checkOpenSocket() {
+				let self = this
+				uni.sendSocketMessage({
+					data: 'ping',
+					success: (res) => {
+						return;
+					},
+					fail: (err) => {
+						self.openConnection();
+					}
+				});
+			},
+			openConnection() {
+				uni.closeSocket();
+				uni.connectSocket({
+					url: "ws://ws.zhongshu.info/ws",
+					success(data) {
+						console.log(data);
+						console.log("websocket正在连接...");
+					},
+				});
+
+				uni.onSocketOpen(function(res) {
+					console.log('WebSocket连接成功');
+				});
+				this.onSocketMessage(2);
+			},
+
+			onSocketMessage(type = 1) {
+				this.timeout = 60000;
+				this.timeoutObj = null;
+				uni.onSocketMessage((res) => {
+					let giveMsg = res.data;
+					this.getSocketMsg(res.data);
+					if (giveMsg) {
+						if (type === 2) {
+							let userId = uni.getStorageSync('userInfo');
+
+							this.reset();
+
+						}
+					}
+				});
+			},
+			getSocketMsg(reData) {
+				if (reData === "assistant") {
+					this.assistant = ""
+					this.messages.push({
+						type: 3,
+						content: this.assistant,
+						length: '0',
+						date: moment().format('YYYY-MM-DD HH:mm:SS')
+					})
 				} else {
-					this.needCancel = false;
-					console.log('解除停止')
+					this.assistant += reData
+					this.messages[this.messages.length - 1].content = this.assistant
 				}
 			},
-			stopRecording() {
+
+			reset() {
+				clearInterval(this.timeoutObj);
+				this.start();
+			},
+
+			start() {
+				let self = this;
+				this.timeoutObj = setInterval(function() {
+					uni.sendSocketMessage({
+						data: 'ping',
+						success: (res) => {
+							console.log('连接中....成功');
+							console.log(res);
+						},
+						fail: (err) => {
+							console.log('连接失败重新连接....');
+							self.openConnection();
+						}
+					});
+				}, this.timeout);
+			},
+			uplade() {
+				uni.closeSocket(); 
+				uni.onSocketClose(function(res) {
+					console.log('WebSocket 已关闭！');
+				});
+			},
+
+			sendText() {
+				if (!this.textMsg) {
+					return;
+				}
+				uni.sendSocketMessage({
+					data: this.textMsg,
+					success(res) {
+						console.log(res);
+					}
+				});
+				this.messages.push({
+					type: 1,
+					content: this.textMsg,
+					length: '0',
+					date: moment().format('YYYY-MM-DD HH:mm:SS')
+				})
+				// let content = this.replaceEmoji(this.textMsg);
+				// let msg = {
+				// 	text: content
+				// }
+				// this.sendMsg(msg, 'text');
+				this.textMsg = ''
 				this.nnshow = 0
 				uni.showTabBar()
-				clearInterval(this.timer);
-				if (this.mediaRecorder && this.isRecording) {
-					this.mediaRecorder.stop();
-					this.isRecording = false;
-					if (!this.needCancel) {
-						
-						console.log('录音发送 ')
-					} else {
-						console.log('取消')
-					}
-
-				}
-				this.needCancel = false
 			},
+
+			stopRecording() {
+				recorderManager.stop()
+			},
+			handleTouchMove(e) {
+				if (e) {
+					console.log(this.startY - e.touches[0].pageY)
+					if (this.startY - e.touches[0].pageY > 50) {
+						this.cancelRecording = true;
+					} else {
+						this.cancelRecording = false;
+					}
+				}
+			},
+			playVoice() {
+				console.log('播放录音');
+				if (this.voicePath) {
+					innerAudioContext.src = this.voicePath;
+					innerAudioContext.play();
+				}
+			},
+			changeway() {
+				this.inputway = this.inputway === 0 ? 1 : 0;
+			},
+			playAudio(e) {
+				const innerAudioContext = uni.createInnerAudioContext()
+				innerAudioContext.autoplay = true
+				innerAudioContext.src = e
+			},
+			// startRecording(e) {
+			// 	this.nnshow = 1;
+			// 	this.removetabbar()
+			// 	this.length = 1;
+			// 	this.startX = e.touches[0].pageX;
+			// 	this.startY = e.touches[0].pageY;
+			// 	this.timer = setInterval(() => {
+			// 		this.length += 1;
+			// 		if (this.length >= 60) {
+			// 			clearInterval(this.timer);
+			// 			this.stopRecording()
+			// 		}
+			// 	}, 1000);
+			// 	console.log('录音开始')
+
+			// 	navigator.mediaDevices.getUserMedia({
+			// 			audio: true
+			// 		})
+			// 		.then(stream => {
+			// 			this.isRecording = true;
+
+			// 			this.mediaRecorder = new MediaRecorder(stream);
+			// 			this.mediaRecorder.start();
+			// 			this.mediaRecorder.onstop = (e) => {
+			// 				this.audioChunks = null
+			// 			}
+			// 			this.mediaRecorder.addEventListener('dataavailable', event => {
+			// 				if (event.data.size > 0) {
+			// 					this.audioChunks = event.data
+			// 					console.log(this.audioChunks.size)
+			// 					const blob = new Blob([this.audioChunks], {
+			// 						type: 'audio/webm'
+			// 					})
+			// 					const blobUrl = URL.createObjectURL(blob)
+			// 					this.messages.push({
+			// 						type: 2,
+			// 						content: blobUrl,
+			// 						length: this.length,
+			// 						date: moment().format('YYYY-MM-DD HH:mm:SS')
+			// 					})
+
+			// 				}
+			// 			});
+			// 		})
+			// 		.catch(error => {
+			// 			console.error('无法访问麦克风', error);
+			// 		});
+			// },
+
+			// stopRecording() {
+			// 	this.nnshow = 0
+			// 	uni.showTabBar()
+			// 	clearInterval(this.timer);
+			// 	if (this.mediaRecorder && this.isRecording) {
+			// 		this.mediaRecorder.stop();
+			// 		this.isRecording = false;
+			// 		if (!this.cancelRecording) {
+
+			// 			console.log('录音发送 ')
+			// 		} else {
+			// 			console.log('取消')
+			// 		}
+
+			// 	}
+			// 	this.cancelRecording = false
+			// },
 			sendVoiceMessage() {
 
-					
+
 			},
 			removetabbar() {
 				uni.hideTabBar();
 			},
-			sendChatMessage() {
-				this.msg.push({
-					type: 1,
-					content: this.message,
-					length: '0',
-					date: moment().format('YYYY-MM-DD HH:mm:SS')
-				})
-				this.message = ""
-				if (this.websocket) {
-					this.websocket.send(this.message)
-				}
-				this.nnshow = 0
-				uni.showTabBar();
-			}
-		}
+		},
+
 	}
 </script>
 
@@ -331,11 +427,11 @@
 			left: 0;
 			right: 0;
 			top: 0;
-			z-index:-1;
+			z-index: -1;
 		}
 
 		.downbg {
-			z-index:-1;
+			z-index: -1;
 			position: absolute;
 			width: 650rpx;
 			height: 261rpx;
