@@ -112,7 +112,7 @@
 	import moment from 'moment'
 	import nnvoice from '@/components/nnvoice.vue'
 	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar.vue";
-
+	import permision from "@/js_sdk/wa-permission/permission.js";
 	// import ipfs from "ipfs-http-client"
 	// const client = ipfs.create({
 	// 	host: "149.28.91.150",
@@ -120,7 +120,7 @@
 	// 	protocol: "http",
 	// })
 
-	const recorderManager = uni.getRecorderManager()
+	const recorderManager = uni.getRecorderManager();
 
 	export default {
 		components: {
@@ -147,6 +147,7 @@
 				voicePath: null,
 				timeout: 0,
 				timeoutObj: null,
+				recordPermission: false,
 			}
 		},
 		onLoad() {
@@ -199,9 +200,25 @@
 						console.log('上传失败')
 					}
 				})
-
+				
 			}
 			recorderManager.onStop(pushVoiceMessage);
+			recorderManager.onPause((res) => {
+				console.log("onPause:", res.data)
+
+			})
+			recorderManager.onResume((res) => {
+				console.log("onResume:", res.data)
+			})
+			recorderManager.onInterruptionBegin((res) => {
+				console.log("onInterruptionBegin:", res.data)
+			})
+			recorderManager.onInterruptionEnd((res) => {
+				console.log("onInterruptionEnd:", res.data)
+			})
+			recorderManager.onError((res) => {
+				console.log("onError:", res.data)
+			})
 		},
 		onShow() {
 			uni.showTabBar()
@@ -212,25 +229,70 @@
 		},
 		methods: {
 			startRecording(e) {
-				this.length = 1;
-				this.startX = e.touches[0].pageX;
-				this.startY = e.touches[0].pageY;
-				this.timer = setInterval(() => {
-					this.length += 1
-					console.log(this.length)
-					if (this.length >= 60) {
-						clearInterval(this.timer)
-						this.stopRecording()
-						this.length = 1
+				console.log(this.recordPermission)
+				if (this.recordPermission) {
+
+					this.length = 1;
+					this.startX = e.touches[0].pageX;
+					this.startY = e.touches[0].pageY;
+					this.timer = setInterval(() => {
+						this.length += 1
+						if (this.length >= 60) {
+							clearInterval(this.timer)
+							this.stopRecording()
+							this.length = 1
+						}
+					}, 1000);
+					recorderManager.start();
+					this.nnshow = 1;
+				} else {
+					let env = uni.getSystemInfoSync().platform;
+					console.log(env);
+					if (env === 'android') {
+						permision.requestAndroidPermission('android.permission.RECORD_AUDIO').then((e) => {
+							if (e === -1) {
+								uni.showToast({
+									title: '您已经永久拒绝录音权限，请在应用设置中手动打开',
+									icon: 'none',
+								});
+							} else if (e === 0) {
+								uni.showToast({
+									title: '您拒绝了录音授权',
+									icon: 'none',
+								});
+							} else if (e === 1) {
+								// uni.showToast({
+								// 	title: '您同意了录音授权',
+								// 	icon: 'none',
+								// });
+					
+								this.recordPermission = true;
+								console.log(this.recordPermission);
+							} else {
+								uni.showToast({
+									title: '授权返回值错误',
+									icon: 'none',
+								});
+							}
+						}).catch((err) => {
+							uni.showToast({
+								title: '拉起录音授权失败',
+								icon: 'none',
+							});
+						})
+					} else if (env === 'ios') {
+						if (permision.judgeIosPermission("record"))
+							this.show = true
+						else
+							uni.showToast({
+								title: '您拒绝了录音授权，请在应用设置中手动打开',
+								icon: 'none',
+							})
 					}
-				}, 1000);
-				recorderManager.start()
-				this.nnshow = 1
-				this.removetabbar()
+				}
 			},
 			submitFile(content) {
 				console.log(content)
-				let self = this
 
 			},
 			checkOpenSocket() {
