@@ -61,8 +61,7 @@
 				</view>
 				<view class="audio" v-if="message.type == 2">
 					<image src="@/static/img/man.png" />
-					<!-- <audio :src="message.content"/> -->
-					<view @click="playAudio(message.content)" :id="message.content">
+					<view @click="playAudio(message.content)" @longpress="submitFile(message.content)">
 						{{ message.length }}″
 						<image src="@/static/img/voice.png"></image>
 					</view>
@@ -113,6 +112,14 @@
 	import moment from 'moment'
 	import nnvoice from '@/components/nnvoice.vue'
 	import statusBar from "@/uni_modules/uni-nav-bar/components/uni-nav-bar/uni-status-bar.vue";
+
+	// import ipfs from "ipfs-http-client"
+	// const client = ipfs.create({
+	// 	host: "149.28.91.150",
+	// 	port: "5001",
+	// 	protocol: "http",
+	// })
+
 	const recorderManager = uni.getRecorderManager()
 
 	export default {
@@ -143,7 +150,7 @@
 			}
 		},
 		onLoad() {
-			const pushVoiceMessage = (res)=>{
+			const pushVoiceMessage = async (res) => {
 				console.log('recorder stop' + JSON.stringify(res));
 				this.voicePath = res.tempFilePath;
 				this.isRecording = false
@@ -163,6 +170,36 @@
 				clearInterval(this.timer)
 				this.cancelRecording = false
 				this.nnshow = 0
+
+				console.log(res.tempFilePath)
+				var contentLength = 0
+				uni.getFileInfo({
+					filePath: res.tempFilePath,
+					success: info => {
+						contentLength = info.size
+						console.log(contentLength);
+					}
+				})
+				uni.uploadFile({
+					url: "https://ipfs.zhongshu.info/api/v0/add",
+					filePath: res.tempFilePath,
+					name: 'path',
+					success: (res) => {
+						uni.showToast({
+							title: res.data,
+							icon: 'none'
+						})
+						console.log(res.data)
+					},
+					fail: (err) => {
+						uni.showToast({
+							title: '上传失败',
+							icon: 'none'
+						})
+						console.log('上传失败')
+					}
+				})
+
 			}
 			recorderManager.onStop(pushVoiceMessage);
 		},
@@ -182,7 +219,7 @@
 					this.length += 1
 					console.log(this.length)
 					if (this.length >= 60) {
-						clearInterval(this.timer);
+						clearInterval(this.timer)
 						this.stopRecording()
 						this.length = 1
 					}
@@ -190,6 +227,11 @@
 				recorderManager.start()
 				this.nnshow = 1
 				this.removetabbar()
+			},
+			submitFile(content) {
+				console.log(content)
+				let self = this
+
 			},
 			checkOpenSocket() {
 				let self = this
@@ -228,14 +270,21 @@
 					if (giveMsg) {
 						if (type === 2) {
 							let userId = uni.getStorageSync('userInfo');
-
 							this.reset();
-
 						}
 					}
 				});
 			},
 			getSocketMsg(reData) {
+				if (reData.includes("Limit:")) {
+					this.messages.push({
+						type: 3,
+						content: reData,
+						length: '0',
+						date: moment().format('YYYY-MM-DD HH:mm:SS')
+					})
+					return
+				}
 				if (reData === "assistant") {
 					this.assistant = ""
 					this.messages.push({
@@ -261,7 +310,7 @@
 					uni.sendSocketMessage({
 						data: 'ping',
 						success: (res) => {
-							console.log('连接中....成功');
+							console.log('连接成功');
 							console.log(res);
 						},
 						fail: (err) => {
@@ -272,7 +321,7 @@
 				}, this.timeout);
 			},
 			uplade() {
-				uni.closeSocket(); 
+				uni.closeSocket();
 				uni.onSocketClose(function(res) {
 					console.log('WebSocket 已关闭！');
 				});
