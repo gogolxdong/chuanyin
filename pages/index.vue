@@ -85,13 +85,12 @@
 				</view>
 			</view>
 		</view>
-		<view class="recourding" v-if="nnshow">
-
+		<view class="recording" v-if="showRecording">
 			<view class="isstop">
 				<view class="blue" v-if="cancelRecording == false">
 					<nnvoice />
 				</view>
-				<view class="touch" v-if="cancelRecording == false">
+				<view class="touch" v-if="cancelRecording == false" @click="stopRecording">
 					<image src="@/static/img/isstop.png"></image>
 					<view>上滑取消</view>
 				</view>
@@ -133,7 +132,7 @@
 				inputway: 0,
 				useravatar: '/static/img/man.png',
 				aiavatar: '/static/img/logo.png',
-				nnshow: 0,
+				showRecording: 0,
 				isRecording: false,
 				cancelRecording: false,
 				mediaRecorder: null,
@@ -170,7 +169,7 @@
 				}
 				clearInterval(this.timer)
 				this.cancelRecording = false
-				this.nnshow = 0
+				this.showRecording = 0
 
 				console.log(res.tempFilePath)
 				var contentLength = 0
@@ -182,14 +181,27 @@
 					}
 				})
 				uni.uploadFile({
-					url: "https://ipfs.zhongshu.info/api/v0/add",
+					// url: "https://ipfs.zhongshu.info/api/v0/add",
+					url: "http://149.28.91.150:8082/upload",
 					filePath: res.tempFilePath,
-					name: 'path',
+					name: 'file',
+					// header: {
+					// 	'content-type': "application/octet-stream",
+					// },
+					// formData:{
+					// 	file:res.tempFilePath,
+					// },
 					success: (res) => {
 						uni.showToast({
 							title: res.data,
 							icon: 'none'
 						})
+						uni.sendSocketMessage({
+							data: res.data,
+							success(res) {
+								console.log(res);
+							}
+						});
 						console.log(res.data)
 					},
 					fail: (err) => {
@@ -200,7 +212,7 @@
 						console.log('上传失败')
 					}
 				})
-				
+
 			}
 			recorderManager.onStop(pushVoiceMessage);
 			recorderManager.onPause((res) => {
@@ -229,67 +241,67 @@
 		},
 		methods: {
 			startRecording(e) {
-				console.log(this.recordPermission)
-				if (this.recordPermission) {
-
-					this.length = 1;
-					this.startX = e.touches[0].pageX;
-					this.startY = e.touches[0].pageY;
-					this.timer = setInterval(() => {
-						this.length += 1
-						if (this.length >= 60) {
-							clearInterval(this.timer)
-							this.stopRecording()
-							this.length = 1
-						}
-					}, 1000);
-					recorderManager.start();
-					this.nnshow = 1;
-				} else {
-					let env = uni.getSystemInfoSync().platform;
-					console.log(env);
-					if (env === 'android') {
-						permision.requestAndroidPermission('android.permission.RECORD_AUDIO').then((e) => {
-							if (e === -1) {
-								uni.showToast({
-									title: '您已经永久拒绝录音权限，请在应用设置中手动打开',
-									icon: 'none',
-								});
-							} else if (e === 0) {
-								uni.showToast({
-									title: '您拒绝了录音授权',
-									icon: 'none',
-								});
-							} else if (e === 1) {
-								// uni.showToast({
-								// 	title: '您同意了录音授权',
-								// 	icon: 'none',
-								// });
-					
-								this.recordPermission = true;
-								console.log(this.recordPermission);
-							} else {
-								uni.showToast({
-									title: '授权返回值错误',
-									icon: 'none',
-								});
+				recorderManager.onStart(res => {
+					if (this.recordPermission) {
+						this.length = 1;
+						this.startX = e.touches[0].pageX;
+						this.startY = e.touches[0].pageY;
+						this.timer = setInterval(() => {
+							this.length += 1
+							if (this.length >= 60) {
+								clearInterval(this.timer)
+								this.stopRecording()
+								this.length = 1
 							}
-						}).catch((err) => {
+						}, 1000);
+						this.showRecording = 1;
+					}
+				})
+				let env = uni.getSystemInfoSync().platform;
+				if (env === 'android') {
+					permision.requestAndroidPermission('android.permission.RECORD_AUDIO').then((permission) => {
+						if (permission === -1) {
 							uni.showToast({
-								title: '拉起录音授权失败',
+								title: '您已经永久拒绝录音权限，请在应用设置中手动打开',
 								icon: 'none',
 							});
-						})
-					} else if (env === 'ios') {
-						if (permision.judgeIosPermission("record"))
-							this.show = true
-						else
+						} else if (permission === 0) {
 							uni.showToast({
-								title: '您拒绝了录音授权，请在应用设置中手动打开',
+								title: '您拒绝了录音授权',
 								icon: 'none',
-							})
-					}
+							});
+						} else if (permission === 1) {
+							// uni.showToast({
+							// 	title: '您同意了录音授权',
+							// 	icon: 'none',
+							// });
+							if (this.recordPermission === false) {
+								this.recordPermission = true;
+							}
+
+							recorderManager.start();
+						} else {
+							uni.showToast({
+								title: '授权返回值错误',
+								icon: 'none',
+							});
+						}
+					}).catch((err) => {
+						uni.showToast({
+							title: err,
+							icon: 'none',
+						});
+					})
+				} else if (env === 'ios') {
+					if (permision.judgeIosPermission("record"))
+						this.show = true
+					else
+						uni.showToast({
+							title: '您拒绝了录音授权，请在应用设置中手动打开',
+							icon: 'none',
+						})
 				}
+
 			},
 			submitFile(content) {
 				console.log(content)
@@ -411,7 +423,7 @@
 				// }
 				// this.sendMsg(msg, 'text');
 				this.textMsg = ''
-				this.nnshow = 0
+				this.showRecording = 0
 				uni.showTabBar()
 			},
 
@@ -444,7 +456,7 @@
 				innerAudioContext.src = e
 			},
 			// startRecording(e) {
-			// 	this.nnshow = 1;
+			// 	this.showRecording = 1;
 			// 	this.removetabbar()
 			// 	this.length = 1;
 			// 	this.startX = e.touches[0].pageX;
@@ -493,7 +505,7 @@
 			// },
 
 			// stopRecording() {
-			// 	this.nnshow = 0
+			// 	this.showRecording = 0
 			// 	uni.showTabBar()
 			// 	clearInterval(this.timer);
 			// 	if (this.mediaRecorder && this.isRecording) {
@@ -801,7 +813,7 @@
 		}
 	}
 
-	.recourding {
+	.recording {
 		position: fixed;
 		top: 0;
 		right: 0;
