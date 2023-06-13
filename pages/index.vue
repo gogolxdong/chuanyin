@@ -60,7 +60,7 @@
 					</view>
 				</view>
 				<view class="audio" v-if="message.type == 2">
-					<image src="@/static/img/man.png" />
+					<image src="@/static/img/man.gif" />
 					<view @click="playAudio(message.content)" @longpress="submitFile(message.content)">
 						{{ message.length }}″
 						<image src="@/static/img/voice.png"></image>
@@ -130,7 +130,7 @@
 			return {
 				messages: [],
 				inputway: 0,
-				useravatar: '/static/img/man.png',
+				useravatar: '/static/img/man.gif',
 				aiavatar: '/static/img/logo.png',
 				showRecording: 0,
 				isRecording: false,
@@ -271,6 +271,7 @@
 								icon: 'none',
 							});
 						} else if (permission === 1) {
+							
 							// uni.showToast({
 							// 	title: '您同意了录音授权',
 							// 	icon: 'none',

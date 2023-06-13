@@ -6,7 +6,7 @@
 			<view class="head">
 				<view class="left">
 					<view class="nickname" @click="goTo('/pages/info')">
-						游客018238dfads
+						马斯克
 					</view>
 					<view class="other">
 						<view class="level">
@@ -18,7 +18,7 @@
 						</view>
 					</view>
 				</view>
-				<image src="@/static/img/man.png" @click="goTo('/pages/info')"></image>
+				<image src="@/static/img/man.gif" @click="goTo('/pages/info')"></image>
 			</view>
 			<view class="pannel">
 				<view class="item" @click="goTo('/pages/info')">
@@ -160,7 +160,7 @@
 				uni.showToast({ //提示
 					title: '复制成功'
 				})
-				result = document.execCommand("copy")
+				result = document.execComman.gifd("copy")
 				textarea.remove()
 				// #endif
 			}

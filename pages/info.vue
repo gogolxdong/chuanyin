@@ -90,7 +90,7 @@
 		},
 		data() {
 			return {
-				src: '/static/img/man.png',
+				src: '/static/img/man.gif',
 				height: 80,
 				heightlist: [],
 				birth: null,
