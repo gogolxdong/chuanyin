@@ -182,7 +182,7 @@
 				})
 				uni.uploadFile({
 					// url: "https://ipfs.zhongshu.info/api/v0/add",
-					url: "http://149.28.91.150:8082/upload",
+					url: "https://upload.zhongshu.info/upload",
 					filePath: res.tempFilePath,
 					name: 'file',
 					// header: {

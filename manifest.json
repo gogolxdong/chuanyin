@@ -69,13 +69,13 @@
             },
             "icons" : {
                 "android" : {
-                    "hdpi" : "C:/Users/lxdon/Pictures/微信图片_20230609101135.png",
-                    "xxxhdpi" : "C:/Users/lxdon/Pictures/微信图片_20230609101135.png",
-                    "xhdpi" : "C:/Users/lxdon/Pictures/微信图片_20230609101135.png",
-                    "xxhdpi" : "C:/Users/lxdon/Pictures/微信图片_20230609101135.png"
+                    "hdpi" : "C:/Users/lxdon/Pictures/chuanyinicon.png",
+                    "xxxhdpi" : "C:/Users/lxdon/Pictures/chuanyinicon.png",
+                    "xhdpi" : "C:/Users/lxdon/Pictures/chuanyinicon.png",
+                    "xxhdpi" : "C:/Users/lxdon/Pictures/chuanyinicon.png"
                 },
                 "ios" : {
-                    "appstore" : "C:/Users/lxdon/Pictures/微信图片_20230609101135.png",
+                    "appstore" : "C:/Users/lxdon/Pictures/chuanyinicon.png",
                     "ipad" : {
                         "app" : "unpackage/res/icons/76x76.png",
                         "app@2x" : "unpackage/res/icons/152x152.png",
